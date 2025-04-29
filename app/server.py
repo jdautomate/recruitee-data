@@ -1,42 +1,49 @@
 import os
-import httpx
+import argparse
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
 
+# Load environment variables from .env file
 load_dotenv()
 
-RECRUITEE_COMPANY_ID = os.getenv("RECRUITEE_COMPANY_ID")
-RECRUITEE_API_TOKEN = os.getenv("RECRUITEE_API_TOKEN")
+# Initialize the MCP server
+mcp = FastMCP(
+    name="Recruitee Server",
+    description="A server for Recruitee API",
+)
 
-mcp = FastMCP("Recruitee Server")
+import tools # Import tools to register them with the MCP server
 
-@mcp.tool()
-async def list_candidates() -> dict:
-    """
-    Lists all candidates from the Recruitee API using pagination.
-    """
-    base_url = f"https://api.recruitee.com/c/{RECRUITEE_COMPANY_ID}/candidates"
-    headers = {
-        "Authorization": f"Bearer {RECRUITEE_API_TOKEN}"
-    }
-    limit = 100  # Adjust as needed; Recruitee may have a maximum limit
-    offset = 0
-    all_candidates = []
+def main():
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="Run the Recruitee MCP server.")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse"],
+        default="sse",
+        help="Transport method to use: 'stdio' for standard input/output or 'sse' for Server-Sent Events."
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind the server to (default: 0.0.0.0)."
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind the server to (default: 8000)."
+    )
+    args = parser.parse_args()
 
-    async with httpx.AsyncClient() as client:
-        while True:
-            params = {"limit": limit, "offset": offset}
-            response = await client.get(base_url, headers=headers, params=params)
-            response.raise_for_status()
-            data = response.json()
-            candidates = data.get("candidates", [])
-            if not candidates:
-                break
-            all_candidates.extend(candidates)
-            offset += limit
+    mcp.host = args.host
+    mcp.port = args.port
 
-    return {"candidates": all_candidates}
+    if not os.getenv("RECRUITEE_API_TOKEN") or not os.getenv("RECRUITEE_COMPANY_ID"):
+        raise ValueError("Please set RECRUITEE_COMPANY_ID and RECRUITEE_API_TOKEN in your environment variables.")
 
+    print(f"Starting Recruitee MCP server with transport: {args.transport}")
+    mcp.run(transport=args.transport)
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    main()

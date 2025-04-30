@@ -2,7 +2,7 @@ import os
 import argparse
 import httpx
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.sse import SseServerTransport
@@ -15,8 +15,11 @@ from starlette.routing import Mount, Route
 import uvicorn
 
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file if exists
+if find_dotenv() != "":
+    load_dotenv(find_dotenv())
+
+
 RECRUITEE_COMPANY_ID = os.getenv("RECRUITEE_COMPANY_ID")
 RECRUITEE_API_TOKEN = os.getenv("RECRUITEE_API_TOKEN")
 
@@ -26,6 +29,28 @@ mcp = FastMCP(
     description="A server for Recruitee API",
 )
 
+
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Run the Recruitee MCP server.")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse"],
+        default="sse",
+        help="Transport method to use: 'stdio' for standard input/output or 'sse' for Server-Sent Events."
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind the server to (default: 0.0.0.0)."
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind the server to (default: 8000)."
+    )
+    return parser.parse_args()
 
 def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
     sse = SseServerTransport("/messages/")
@@ -80,30 +105,10 @@ async def list_candidates() -> dict:
 
 
 if __name__ == "__main__":
-    # Set up argument parser
-    parser = argparse.ArgumentParser(description="Run the Recruitee MCP server.")
-    parser.add_argument(
-        "--transport",
-        choices=["stdio", "sse"],
-        default="sse",
-        help="Transport method to use: 'stdio' for standard input/output or 'sse' for Server-Sent Events."
-    )
-    parser.add_argument(
-        "--host",
-        default="0.0.0.0",
-        help="Host to bind the server to (default: 0.0.0.0)."
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port to bind the server to (default: 8000)."
-    )
-    args = parser.parse_args()
-
     if not os.getenv("RECRUITEE_API_TOKEN") or not os.getenv("RECRUITEE_COMPANY_ID"):
         raise ValueError("Please set RECRUITEE_COMPANY_ID and RECRUITEE_API_TOKEN in your environment variables.")
 
+    args = parse_args()
     mcp.host = args.host
     mcp.port = args.port
 
@@ -112,6 +117,5 @@ if __name__ == "__main__":
         mcp.run(transport="stdio")
     else:
         print(f"Starting MCP server in SSE mode at http://{args.host}:{args.port}/sse")
-        mcp_server = mcp._mcp_server
-        app = create_starlette_app(mcp_server, debug=True)
+        app = create_starlette_app(mcp._mcp_server, debug=True)
         uvicorn.run(app, host=args.host, port=args.port)

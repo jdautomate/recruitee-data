@@ -13,7 +13,6 @@ WORKDIR /app
 # Copy project files
 COPY pyproject.toml uv.lock ./
 COPY app/ ./app/
-COPY .env ./.env
 
 EXPOSE 8000
 

@@ -13,7 +13,7 @@ Example client configuration for local testing:
 ```
 Then run the client:
 ```bash
-mcp-cli chat --server recruitee --config-file ~/Documents/github/mcp-cli/server_config.json
+mcp-cli chat --server recruitee --config-file /path/to/mcp-cli/server_config.json
 ```
 Check if tools are available typing `/chat` in console.
 

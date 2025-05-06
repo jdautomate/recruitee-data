@@ -6,7 +6,7 @@ Example client configuration for local testing:
   "mcpServers": {
     "recruitee": {
       "command": "/path/to/.venv/bin/python",
-      "args": ["/path/to/recruitee-mcp-server/app/server.py", "--transport", "stdio"]
+      "args": ["/path/to/recruitee-mcp-server/app/app.py", "--transport", "stdio"]
     }
   }
 }
@@ -26,6 +26,7 @@ make run-local-fresh
 ```
 Then run the client:
 ```bash
+cd mcp-sse
 uv run client.py http://0.0.0.0:8000/sse
 ```
 
@@ -37,5 +38,6 @@ make deploy
 ```
 Then run the client:
 ```bash
+cd mcp-sse
 uv run client.py https://url.to.fly.deployment/sse
 ```

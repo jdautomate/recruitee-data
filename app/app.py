@@ -1,33 +1,18 @@
 import os
 import argparse
-import httpx
 
-from dotenv import load_dotenv, find_dotenv
-
-from mcp.server.fastmcp import FastMCP
-from mcp.server.sse import SseServerTransport
-from mcp.server import Server
+import uvicorn
 
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.routing import Mount, Route
 
-import uvicorn
+from mcp.server.sse import SseServerTransport
+from mcp.server import Server
 
+from server_config import mcp
+import tools    # noqa: F401
 
-# Load environment variables from .env file if exists
-if find_dotenv() != "":
-    load_dotenv(find_dotenv())
-
-
-RECRUITEE_COMPANY_ID = os.getenv("RECRUITEE_COMPANY_ID")
-RECRUITEE_API_TOKEN = os.getenv("RECRUITEE_API_TOKEN")
-
-# Initialize the MCP server
-mcp = FastMCP(
-    name="Recruitee Server",
-    description="A server for Recruitee API",
-)
 
 
 def parse_args() -> argparse.Namespace:
@@ -76,46 +61,17 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
     )
 
 
-@mcp.tool()
-async def list_candidates() -> dict:
-    """
-    Lists all candidates from the Recruitee API using pagination.
-    """
-    base_url = f"https://api.recruitee.com/c/{RECRUITEE_COMPANY_ID}/candidates"
-    headers = {
-        "Authorization": f"Bearer {RECRUITEE_API_TOKEN}"
-    }
-    limit = 100  # Adjust as needed; Recruitee may have a maximum limit
-    offset = 0
-    all_candidates = []
-
-    async with httpx.AsyncClient() as client:
-        while True:
-            params = {"limit": limit, "offset": offset}
-            response = await client.get(base_url, headers=headers, params=params)
-            response.raise_for_status()
-            data = response.json()
-            candidates = data.get("candidates", [])
-            if not candidates:
-                break
-            all_candidates.extend(candidates)
-            offset += limit
-
-    return {"candidates": all_candidates}
-
-
 if __name__ == "__main__":
     if not os.getenv("RECRUITEE_API_TOKEN") or not os.getenv("RECRUITEE_COMPANY_ID"):
         raise ValueError("Please set RECRUITEE_COMPANY_ID and RECRUITEE_API_TOKEN in your environment variables.")
 
     args = parse_args()
-    mcp.host = args.host
-    mcp.port = args.port
-
     if args.transport == "stdio":
         print("Starting MCP server in stdio mode...")
         mcp.run(transport="stdio")
     else:
         print(f"Starting MCP server in SSE mode at http://{args.host}:{args.port}/sse")
+        mcp.host = args.host
+        mcp.port = args.port
         app = create_starlette_app(mcp._mcp_server, debug=True)
         uvicorn.run(app, host=args.host, port=args.port)

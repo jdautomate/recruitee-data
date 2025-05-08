@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Literal
 
 import httpx
 from async_lru import alru_cache
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from server_config import mcp, RECRUITEE_COMPANY_ID, RECRUITEE_API_TOKEN
 
@@ -43,7 +43,6 @@ async def list_jobs() -> list[dict]:
     """Return all job offers (ID + title)."""
     return [{"id": o["id"], "title": o["title"]} for o in await _fetch_offers("job")]
 
-
 @mcp.tool()
 async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="not_archived") -> list[dict]:
     """Return all talent pools (ID + name + status) with optional status filter."""
@@ -65,8 +64,6 @@ async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="n
             if tp["status"] == "archived"
         ]
 
-
-
 @mcp.tool()
 async def list_disqualify_reasons() -> list[dict]:
     """Return every configured disqualify reason (ID + name)."""
@@ -83,8 +80,8 @@ class CandidateSearchFilter(BaseModel):
     limit: int = Field(100, description="Page size (max 10 000)")
     offset: int = Field(0, description="Paging offset")
 
-    @validator("limit")
-    def _limit_max(cls, v):
+    @field_validator("limit")
+    def _limit_max(cls, v: int) -> int:
         if v > 10_000:
             raise ValueError("Recruitee caps limit at 10 000 per call.")
         return v
@@ -97,10 +94,13 @@ async def search_candidates(filter: CandidateSearchFilter) -> list[dict]:
     Return basic data for candidates who match a multi-field filter.
     Helper tools convert human-readable names to IDs using cached look-ups.
     """
-    # ----- convert names → IDs ----------------------------------------------
-    job_map = {j["title"]: j["id"] for j in await list_jobs()}
-    pool_map = {p["name"]: p["id"] for p in await list_talent_pools()}
-    dq_map = {d["name"]: d["id"] for d in await list_disqualify_reasons()}
+    fields_set = CandidateSearchFilter.model_fields_set
+    if "disqualify_reasons" in fields_set:
+        dq_map = {d["name"]: d["id"] for d in await list_disqualify_reasons()}
+    if "talent_pools" in fields_set:
+        pool_map = {p["title"]: p["id"] for p in await list_talent_pools()}
+    if "job_titles" in fields_set:
+        job_map = {j["title"]: j["id"] for j in await list_jobs()}
 
     def _ids(requested: Optional[list[str]], mapping: dict[str, int]) -> list[int]:
         if not requested:

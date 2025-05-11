@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Dict, List, Optional, Literal
 
 import httpx
@@ -36,6 +37,10 @@ async def _fetch_disqualify_reasons() -> list[dict]:
     data = await _get("/disqualify_reasons")
     return data.get("disqualify_reasons", [])
 
+@alru_cache(ttl=900)
+async def _fetch_tags() -> list[dict]:
+    data = await _get("/tags")
+    return data.get("tags", [])
 
 
 @mcp.tool()
@@ -69,14 +74,29 @@ async def list_disqualify_reasons() -> list[dict]:
     """Return every configured disqualify reason (ID + name)."""
     return [{"id": d["id"], "name": d["name"]} for d in await _fetch_disqualify_reasons()]
 
+@mcp.tool()
+async def list_candidate_tags() -> list[dict]:
+    """Return every configured candidate tag (ID + name + count)."""
+    return [{"id": t["id"], "name": t["name"], "count": t["taggings_count"]} for t in await _fetch_tags()]
+
 
 class CandidateSearchFilter(BaseModel):
-    skills: Optional[List[str]] = Field(None, description="Required skill keywords (AND-combined)")
-    disqualify_reasons: Optional[List[str]] = Field(None, description="Rejection reason names")
-    talent_pools: Optional[List[str]] = Field(None, description="Talent-pool names")
-    job_titles: Optional[List[str]] = Field(None, description="Job/position titles")
+    job_ids: Optional[List[int]] = Field(None, description="List of job/position ids on which the candidate applied from 'list_jobs'.")
+
+    disqualify_reasons: Optional[List[str]] = Field(None, description="Rejection reason names from 'list_disqualify_reasons'.")
+    is_disqualified: Optional[bool] = Field(None, description="True if the candidate is disqualified, False otherwise.")
+
+    candidate_tag_ids: Optional[List[int]] = Field(None, description="Candidate tag ids from 'list_candidate_tags'.")
+
+    skills: Optional[List[str]] = Field(None, description="Required skill keywords.")
+    skills_combiner: Optional[Literal["in", "not_in", "contains", "not_contains", "has_all_of"]] = Field("in", description="Combiner for skills. This field is required if 'skills' is set.")
+
+    talent_pools: Optional[List[int]] = Field(None, description="Talent-pool ids from 'list_talent_pools'.")
+    talent_pools_combiner: Optional[Literal["in", "not_in", "all_in"]] = Field("in", description="Combiner for talent pools. This field is required if 'talent_pools' is set.")
+
     created_from: Optional[int] = Field(None, description="Earliest creation date (Unix timestamp)")
     created_to: Optional[int] = Field(None, description="Latest creation date (Unix timestamp)")
+
     limit: int = Field(100, description="Page size (max 10 000)")
     offset: int = Field(0, description="Paging offset")
 
@@ -89,49 +109,54 @@ class CandidateSearchFilter(BaseModel):
 
 
 @mcp.tool()
-async def search_candidates(filter: CandidateSearchFilter) -> list[dict]:
+async def search_candidates(search_filter: CandidateSearchFilter) -> list[dict]:
+    """Return basic data for candidates who match a multi-field filter.
+Helper tools convert human-readable names to IDs using cached look-ups.
     """
-    Return basic data for candidates who match a multi-field filter.
-    Helper tools convert human-readable names to IDs using cached look-ups.
-    """
-    fields_set = CandidateSearchFilter.model_fields_set
-    if "disqualify_reasons" in fields_set:
-        dq_map = {d["name"]: d["id"] for d in await list_disqualify_reasons()}
-    if "talent_pools" in fields_set:
-        pool_map = {p["title"]: p["id"] for p in await list_talent_pools()}
-    if "job_titles" in fields_set:
-        job_map = {j["title"]: j["id"] for j in await list_jobs()}
 
-    def _ids(requested: Optional[list[str]], mapping: dict[str, int]) -> list[int]:
-        if not requested:
-            return []
-        missing = [n for n in requested if n not in mapping]
-        if missing:
-            raise ValueError(f"Unknown names: {', '.join(missing)}")
-        return [mapping[n] for n in requested]
-
-    job_ids = _ids(filter.job_titles, job_map)
-    pool_ids = _ids(filter.talent_pools, pool_map)
-    dq_ids = _ids(filter.disqualify_reasons, dq_map)
-
-    # ----- build /search/new/candidates filter array ------------------------
     filters: List[Dict] = []
-    if filter.skills:
-        filters.append({"filter": "skills", "text": {"contains": filter.skills}})
-    if dq_ids:
-        filters.append({"filter": "disqualifies", "reason": {"in": dq_ids}})
-    if pool_ids:
-        filters.append({"filter": "talent_pools", "id": {"in": pool_ids}})
-    if job_ids:
-        filters.append({"filter": "jobs", "id": {"in": job_ids}})
-    if filter.created_from or filter.created_to:
+    if search_filter.job_ids:
+        filters.append({"filter": "jobs", "id": {"in": search_filter.job_ids}})
+
+    if search_filter.disqualify_reasons:
+        filters.append({"filter":"disqualifies", "reason":{"in":search_filter.disqualify_reasons}})
+
+    if search_filter.is_disqualified is not None:
+        if search_filter.is_disqualified:
+            filters.append({"filter":"disqualifies", "reason":{"has_any":True}})
+        else:
+            filters.append({"filter":"disqualifies", "reason":{"has_none":True}})
+
+    if search_filter.candidate_tag_ids:
+        filters.append({"filter":"tags", "id":{"in":search_filter.candidate_tag_ids}})
+
+    if search_filter.skills and search_filter.skills_combiner:
+        filters.append({"filter":"skills", "text":{search_filter.skills_combiner: search_filter.skills}})
+
+    if search_filter.talent_pools and search_filter.talent_pools_combiner:
+        filters.append({"filter":"talent_pools", "id":{search_filter.talent_pools_combiner: search_filter.talent_pools}})
+
+    if search_filter.created_from or search_filter.created_to:
         created = {}
-        if filter.created_from:
-            created["gte"] = filter.created_from
-        if filter.created_to:
-            created["lte"] = filter.created_to
+        if search_filter.created_from:
+            created["gte"] = search_filter.created_from
+        if search_filter.created_to:
+            created["lte"] = search_filter.created_to
         filters.append({"field": "created_at", **created})
 
-    params = {"filters": filters, "limit": filter.limit, "offset": filter.offset}
+    params = {
+        "limit": search_filter.limit,
+        "offset": search_filter.offset,
+        "filters_json": json.dumps(filters),
+    }
+
     data = await _get("/search/new/candidates", params=params)
-    return [{"id": c["id"], "name": c["name"]} for c in data.get("candidates", [])]
+    return [{"id": c["id"], "name": c["name"]} for c in data.get("hits", [])]
+
+
+
+if __name__ == "__main__":
+    import asyncio
+    search_filters = CandidateSearchFilter(talent_pools=[2118301], is_disqualified=True)
+    x = asyncio.run(search_candidates(search_filters))
+    print(f"{x}\n{len(x)}")

@@ -106,8 +106,6 @@ class CandidateSearchFilter(BaseModel):
             raise ValueError("Recruitee caps limit at 10 000 per call.")
         return v
 
-
-
 @mcp.tool()
 async def search_candidates(search_filter: CandidateSearchFilter) -> list[dict]:
     """Return basic data for candidates who match a multi-field filter.
@@ -153,6 +151,12 @@ Helper tools convert human-readable names to IDs using cached look-ups.
     data = await _get("/search/new/candidates", params=params)
     return [{"id": c["id"], "name": c["name"]} for c in data.get("hits", [])]
 
+
+@mcp.tool()
+async def get_candidate(candidate_id: int) -> dict:
+    """Return full available candidate data."""
+    data = await _get(f"/candidates/{candidate_id}")
+    return data.get("candidate", {})
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from mcp.server.sse import SseServerTransport
 from mcp.server import Server
 
 from server_config import mcp
-import tools    # noqa: F401
+import tools, prompts    # noqa: F401
 
 
 

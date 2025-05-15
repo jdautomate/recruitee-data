@@ -22,31 +22,28 @@ async def _get(path: str, params: dict | None = None) -> dict:
         resp.raise_for_status()
         return resp.json()
 
+
 @alru_cache(ttl=900)
-async def _fetch_offers(kind: str) -> list[dict]:
-    data = await _get("/offers", params={"kind": kind})
+async def _fetch_offers() -> list[dict]:
+    data = await _get("/offers")
     return data.get("offers", [])
+
+@mcp.tool()
+async def list_offers() -> list[dict]:
+    """Return all job offers (ID + title)."""
+    return [{"id": o["id"], "title": o["title"]} for o in await _fetch_offers()]
+
+@mcp.tool()
+async def get_offer(offer_id: int) -> dict:
+    """Return full available offer data."""
+    data = await _get(f"/offers/{offer_id}")
+    return data.get("offer", {})
+
 
 @alru_cache(ttl=900)
 async def _fetch_talent_pools() -> list[dict]:
     data = await _get("/talent_pools")
     return data.get("talent_pools", [])
-
-@alru_cache(ttl=900)
-async def _fetch_disqualify_reasons() -> list[dict]:
-    data = await _get("/disqualify_reasons")
-    return data.get("disqualify_reasons", [])
-
-@alru_cache(ttl=900)
-async def _fetch_tags() -> list[dict]:
-    data = await _get("/tags")
-    return data.get("tags", [])
-
-
-@mcp.tool()
-async def list_jobs() -> list[dict]:
-    """Return all job offers (ID + title)."""
-    return [{"id": o["id"], "title": o["title"]} for o in await _fetch_offers("job")]
 
 @mcp.tool()
 async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="not_archived") -> list[dict]:
@@ -70,14 +67,44 @@ async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="n
         ]
 
 @mcp.tool()
+async def get_talent_pool(talent_pool_id: int) -> dict:
+    """Return full details for a specific talent pool by ID."""
+    data = await _get(f"/talent_pools/{talent_pool_id}")
+    return data.get("talent_pool", {})
+
+
+@alru_cache(ttl=900)
+async def _fetch_disqualify_reasons() -> list[dict]:
+    data = await _get("/disqualify_reasons")
+    return data.get("disqualify_reasons", [])
+
+@mcp.tool()
 async def list_disqualify_reasons() -> list[dict]:
     """Return every configured disqualify reason (ID + name)."""
     return [{"id": d["id"], "name": d["name"]} for d in await _fetch_disqualify_reasons()]
+
+
+@alru_cache(ttl=900)
+async def _fetch_tags() -> list[dict]:
+    data = await _get("/tags")
+    return data.get("tags", [])
 
 @mcp.tool()
 async def list_candidate_tags() -> list[dict]:
     """Return every configured candidate tag (ID + name + count)."""
     return [{"id": t["id"], "name": t["name"], "count": t["taggings_count"]} for t in await _fetch_tags()]
+
+
+@mcp.tool()
+async def list_stages(offer_id: int) -> list[dict]:
+    """Return all pipeline stages for the given offer (ID + name + category + group)."""
+    data = await _get(f"/offers/{offer_id}")
+    data = data.get("offer", {}).get("pipeline_template", {}).get("stages", [])
+    return [
+        {"id": s["id"], "name": s["name"], "category": s["category"], "group": s["group"]}
+        for s in data
+    ]
+
 
 
 class CandidateSearchFilter(BaseModel):
@@ -150,7 +177,6 @@ Helper tools convert human-readable names to IDs using cached look-ups.
 
     data = await _get("/search/new/candidates", params=params)
     return [{"id": c["id"], "name": c["name"]} for c in data.get("hits", [])]
-
 
 @mcp.tool()
 async def get_candidate(candidate_id: int) -> dict:

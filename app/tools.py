@@ -108,7 +108,7 @@ async def list_stages(offer_id: int) -> list[dict]:
 
 
 class CandidateSearchFilter(BaseModel):
-    job_ids: Optional[List[int]] = Field(None, description="List of job/position ids on which the candidate applied from 'list_jobs'.")
+    offer_ids: Optional[List[int]] = Field(None, description="List of offer ids on which the candidate applied from 'list_offers'.")
 
     disqualify_reasons: Optional[List[str]] = Field(None, description="Rejection reason names from 'list_disqualify_reasons'.")
     is_disqualified: Optional[bool] = Field(None, description="True if the candidate is disqualified, False otherwise.")
@@ -140,8 +140,8 @@ Helper tools convert human-readable names to IDs using cached look-ups.
     """
 
     filters: List[Dict] = []
-    if search_filter.job_ids:
-        filters.append({"filter": "jobs", "id": {"in": search_filter.job_ids}})
+    if search_filter.offer_ids:
+        filters.append({"filter": "jobs", "id": {"in": search_filter.offer_ids}})
 
     if search_filter.disqualify_reasons:
         filters.append({"filter":"disqualifies", "reason":{"in":search_filter.disqualify_reasons}})

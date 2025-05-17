@@ -20,5 +20,5 @@ EXPOSE 8000
 RUN uv pip install --system --no-cache -r pyproject.toml
 
 # Set the entry point
-CMD ["uv", "run", "python", "app/app.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "python", "app/app.py", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]
 

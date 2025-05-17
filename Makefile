@@ -19,22 +19,22 @@ deploy: set-secrets
 
 ## Run stdio locally
 stdio:
-	@uv run python app/server.py --transport sse --host 0.0.0.0 --port $(PORT)
+	@uv run python app/app.py --transport sse --host 0.0.0.0 --port $(PORT)
 
 ## Build the Docker image
 build:
 	@docker build -t $(IMAGE_NAME) .
 
-## Run sse locally
+## Run Docker locally
 run-local:
 	@docker run --env-file $(ENV_FILE) -p $(PORT):$(PORT) --rm --name $(IMAGE_NAME) $(IMAGE_NAME)
 run-local-fresh: build run-local
 
-## Stop sse locally
+## Stop Docker locally
 docker-stop:
 	-@docker stop $(IMAGE_NAME) || true
 	-@docker rm $(IMAGE_NAME) || true
 
-## Clean up
+## Clean up Docker
 clean:
 	-@docker rmi $(IMAGE_NAME) || true

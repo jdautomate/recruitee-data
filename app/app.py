@@ -1,15 +1,6 @@
 import os
 import argparse
 
-import uvicorn
-
-from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.routing import Mount, Route
-
-from mcp.server.sse import SseServerTransport
-from mcp.server import Server
-
 from server_config import mcp
 import tools, prompts    # noqa: F401
 
@@ -20,9 +11,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the Recruitee MCP server.")
     parser.add_argument(
         "--transport",
-        choices=["stdio", "sse"],
-        default="sse",
-        help="Transport method to use: 'stdio' for standard input/output or 'sse' for Server-Sent Events."
+        choices=["stdio", "streamable-http", "sse"],
+        default="stdio",
+        help="Transport method for the server (default: stdio)."
     )
     parser.add_argument(
         "--host",
@@ -35,43 +26,39 @@ def parse_args() -> argparse.Namespace:
         default=8000,
         help="Port to bind the server to (default: 8000)."
     )
-    return parser.parse_args()
-
-def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
-    sse = SseServerTransport("/messages/")
-
-    async def handle_sse(request: Request) -> None:
-        async with sse.connect_sse(
-                request.scope,
-                request.receive,
-                request._send,
-        ) as (read_stream, write_stream):
-            await mcp_server.run(
-                read_stream,
-                write_stream,
-                mcp_server.create_initialization_options(),
-            )
-
-    return Starlette(
-        debug=debug,
-        routes=[
-            Route("/sse", endpoint=handle_sse),
-            Mount("/messages/", app=sse.handle_post_message),
-        ],
+    parser.add_argument(
+        "--path",
+        required=False,
+        help="Mount path for HTTP/SSE (default /mcp or /sse)."
     )
+
+    parser_args = parser.parse_args()
+
+    if parser_args.transport == "sse" and parser_args.path is None:
+        parser_args.path = parser_args.path or "/sse"
+    elif parser_args.transport == "streamable-http" and parser_args.path is None:
+        parser_args.path = parser_args.path or "/mcp"
+    else:
+        parser_args.path = None
+    return parser_args
 
 
 if __name__ == "__main__":
     if not os.getenv("RECRUITEE_API_TOKEN") or not os.getenv("RECRUITEE_COMPANY_ID"):
-        raise ValueError("Please set RECRUITEE_COMPANY_ID and RECRUITEE_API_TOKEN in your environment variables.")
+        raise SystemExit("Please set RECRUITEE_COMPANY_ID and RECRUITEE_API_TOKEN in your environment variables.")
 
     args = parse_args()
     if args.transport == "stdio":
         print("Starting MCP server in stdio mode...")
-        mcp.run(transport="stdio")
-    else:
-        print(f"Starting MCP server in SSE mode at http://{args.host}:{args.port}/sse")
-        mcp.host = args.host
-        mcp.port = args.port
-        app = create_starlette_app(mcp._mcp_server, debug=True)
-        uvicorn.run(app, host=args.host, port=args.port)
+    elif args.transport == "streamable-http":
+        print(f"Starting MCP server in streamable-http mode at http://{args.host}:{args.port}{args.path}")
+    elif args.transport == "sse":
+        print(f"Starting MCP server in SSE mode at http://{args.host}:{args.port}{args.path}")
+
+    mcp.run(
+        transport=args.transport,
+        path=args.path,
+        host=args.host,
+        port=args.port,
+    )
+

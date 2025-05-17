@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv, find_dotenv
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 
 

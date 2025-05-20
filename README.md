@@ -2,7 +2,7 @@
 
 **Model Context Protocol (MCP) server for Recruitee – advanced search, reporting, and analytics for recruitment data.**
 
-[![Deploy on Fly.io](https://fly.io/static/images/brand/logo-landscape.svg)](https://fly.io/apps/recruitee-mcp-server)
+[![Deploy on Fly.io](https://badgen.net/badge/Fly.io/deploy/green)](https://fly.io/apps/recruitee-mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---

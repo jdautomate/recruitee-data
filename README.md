@@ -1,116 +1,164 @@
-### Clients
+# Recruitee MCP Server
 
-For testing the server, you can use any MCP client that supports the selected transport method.
+**Model Context Protocol (MCP) server for Recruitee – advanced search, reporting, and analytics for recruitment data.**
 
-For example, for `stdio` and `streamable-http`, you can use apps like **Claude Desktop**.
-
-However, if you want to test the server using open-source clients, you can use the following:
-
-- [mcp-cli](https://github.com/chrishayuk/mcp-cli) – Perfect for testing `stdio` transport. Doesn’t support `streamable-http` or `SSE` directly.
-- [mcp-sse](https://github.com/sidharthrajaram/mcp-sse) – Supports `SSE` transport, but CLI isn’t fully functional yet.
+[![Deploy on Fly.io](https://www.fly.io/public/images/fly-badge.svg)](https://fly.io/apps/recruitee-mcp-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-### Server
+## 🚀 Overview
 
-There are 3 transport methods available:
+The **Model Context Protocol (MCP)** is rapidly becoming the standard for connecting AI agents to external services. This project implements an MCP server for [Recruitee](https://recruitee.com/), enabling advanced, AI-powered search, filtering, and reporting on recruitment data.
 
-- **stdio** – Standard input/output.
-- **streamable-http** – HTTP transport with streaming support. Ideal for deployment. Becoming more popular in the MCP community and gaining client support.
-- **SSE (Server-Sent Events)** – Not recommended. Already deprecated in some MCP frameworks. Additionally, only a limited number of clients support this method.
+Unlike basic CRUD wrappers, this server focuses on the tasks where LLMs and AI agents excel: **summarizing, searching, and filtering**. It exposes a set of tools and prompt templates, making it easy for any MCP-compatible client to interact with Recruitee data in a structured, agent-friendly way.
 
 ---
 
-### Using Locally with `stdio` Transport
+## ✨ Features
 
-Example client configuration:
+- **Advanced Candidate Search & Filtering**  
+  Search for candidates by skills, status, talent pool, job, tags, and more. Example:  
+  _"Find candidates with Elixir experience who were rejected due to salary expectations."_
 
-```json
-{
-  "mcpServers": {
-    "recruitee": {
-      "command": "/path/to/.venv/bin/python",
-      "args": ["/path/to/recruitee-mcp-server/app/app.py", "--transport", "stdio"]
+- **Recruitment Summary Reports**  
+  Generate summaries of recruitment activities, such as time spent in each stage, total process duration, and stage-by-stage breakdowns.
+
+- **Recruitment Statistics**  
+  Calculate averages and metrics (e.g., average expected salary for backend roles, average time to hire, contract type stats).
+
+- **General Search**  
+  Quickly find candidates, recruitments, or talent pools by name or attribute.
+
+- **GDPR Compliance**  
+  (Planned) Automatic deletion of personal data after 2 years, configurable per talent pool or recruitment.
+
+- **Prompt Templates**  
+  Exposes prompt templates for LLM-based clients, ensuring consistent and high-quality summaries.
+
+---
+
+## 🛠 Example Queries
+
+- _Find candidates with Elixir experience who were rejected due to salary expectations._
+- _Show me their personal details including CV URL._
+- _Why was candidate 'X' disqualified and at what stage?_
+- _What are the other stages for this offer?_
+
+---
+
+## 🧑‍💻 Implementation
+
+- **Language:** Python
+- **Framework:** [FastMCP](https://github.com/chrishayuk/fastmcp)
+- **API:** [Recruitee Careers Site API](https://docs.recruitee.com/reference/intro-to-careers-site-api)
+- **Schemas:** All MCP tool schemas are generated from Pydantic models, with rich metadata for LLMs.
+
+The server retrieves and processes data from Recruitee, exposing it via MCP tools. Summaries are composed by the client using provided prompt templates.
+
+---
+
+## 🚦 Transport Methods
+
+- **stdio** – For local development and testing.
+- **streamable-http** – For remote, production-grade deployments (recommended).
+- **SSE** – Supported but deprecated in some MCP frameworks.
+
+---
+
+## 🧪 Usage
+
+### Local (stdio)
+
+1. **Configure your MCP client:**
+
+    ```json
+    {
+      "mcpServers": {
+        "recruitee": {
+          "command": "/path/to/.venv/bin/python",
+          "args": ["/path/to/recruitee-mcp-server/app/app.py", "--transport", "stdio"]
+        }
+      }
     }
-  }
-}
-```
+    ```
 
-Run the `mcp-cli` client like this:
+2. **Run with [mcp-cli](https://github.com/chrishayuk/mcp-cli):**
 
-```bash
-mcp-cli chat --server recruitee --config-file /path/to/mcp-cli/server_config.json
-```
+    ```bash
+    mcp-cli chat --server recruitee --config-file /path/to/mcp-cli/server_config.json
+    ```
 
-Check if tools are available by typing `/tools` in the console.
+### Remote (streamable-http)
+
+1. **Configure your MCP client:**
+
+    ```json
+    {
+      "mcpServers": {
+        "recruitee": {
+          "transport": "streamable-http",
+          "url": "https://recruitee-mcp-server.fly.dev/mcp"
+        }
+      }
+    }
+    ```
+
+2. **Or use [mcp-remote](https://github.com/chrishayuk/mcp-remote) for free-tier clients:**
+
+    ```json
+    {
+      "mcpServers": {
+        "recruitee": {
+          "command": "npx",
+          "args": [
+            "mcp-remote",
+            "https://recruitee-mcp-server.fly.dev/mcp/"
+          ]
+        }
+      }
+    }
+    ```
 
 ---
 
-### Using Remotely with `streamable-http` Transport
+## ☁️ Deployment
 
-Example client configuration:
+### Deploy to Fly.io
 
-```json
-{
-  "mcpServers": {
-    "recruitee": {
-      "transport": "streamable-http",
-      "url": "https://url.to.server/mcp"
-    }
-  }
-}
-```
+1. **Set your secrets in `.env**
+2. **Deploy:**
 
-This configuration works with **Claude Desktop** (paid subscription only).
+    ```bash
+    flyctl auth login
+    make deploy
+    ```
 
-For the **free tier**, use this workaround:
-
-```json
-{
-  "mcpServers": {
-    "recruitee": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://url.to.server/mcp/"
-      ]
-    }
-  }
-}
-```
+- The server is live at: [https://recruitee-mcp-server.fly.dev/](https://recruitee-mcp-server.fly.dev/)
 
 ---
 
-### Using Remotely with `SSE` Transport (Not Recommended)
+## 📚 Resources
 
-Example client configuration:
-
-```json
-{
-  "mcpServers": {
-    "recruitee": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://url.to.server/sse"
-      ]
-    }
-  }
-}
-```
-
-This configuration may work with any MCP client, but note that the client does **not** use SSE directly.
+- [Recruitee MCP Server (GitHub)](https://github.com/EmpoweredHouse/recruitee-mcp-server)
+- [Recruitee API Docs](https://docs.recruitee.com/reference/intro-to-careers-site-api)
+- [Model Context Protocol (MCP)](https://github.com/chrishayuk/model-context-protocol)
+- [FastMCP Framework](https://github.com/chrishayuk/fastmcp)
 
 ---
 
-### Deploy Server to Fly.io
+## 🤝 Contributing
 
-You can deploy the server to any cloud provider. In this example, we use **Fly.io**.
+Contributions, issues, and feature requests are welcome!  
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-Update your Dockerfile to use either `SSE` or `streamable-http` transport.  
-Set your secrets in a `.env` file and then run:
+---
 
-```bash
-flyctl auth login
-make deploy
-```
+## 📝 License
+
+This project is [MIT licensed](LICENSE).
+
+---
+
+**Empower your AI agents with advanced recruitment data access and analytics.**
+

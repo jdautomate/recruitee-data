@@ -1,7 +1,7 @@
 # Makefile for MCP server project
 
 ENV_FILE := ./.env
-IMAGE_NAME := mcp-recruitee-server
+IMAGE_NAME := recruitee-mcp-server
 PORT := 8000
 
 

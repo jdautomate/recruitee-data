@@ -1,7 +1,10 @@
 import os
 import argparse
 
+import uvicorn
+
 from server_config import mcp
+from auth import BearerAuthMiddleware
 import tools, prompts    # noqa: F401
 
 
@@ -50,15 +53,24 @@ if __name__ == "__main__":
     args = parse_args()
     if args.transport == "stdio":
         print("Starting MCP server in stdio mode...")
+        mcp.run(
+            transport=args.transport,
+        )
+
     elif args.transport == "streamable-http":
         print(f"Starting MCP server in streamable-http mode at http://{args.host}:{args.port}{args.path}")
+        app = mcp.http_app(
+            path=args.path,
+        )
+        app.add_middleware(BearerAuthMiddleware)
+        uvicorn.run(app, host=args.host, port=args.port)
+
     elif args.transport == "sse":
         print(f"Starting MCP server in SSE mode at http://{args.host}:{args.port}{args.path}")
-
-    mcp.run(
-        transport=args.transport,
-        path=args.path,
-        host=args.host,
-        port=args.port,
-    )
+        mcp.run(
+            transport=args.transport,
+            path=args.path,
+            host=args.host,
+            port=args.port,
+        )
 

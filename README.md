@@ -113,8 +113,13 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
           "command": "npx",
           "args": [
             "mcp-remote",
-            "https://recruitee-mcp-server.fly.dev/mcp/"
-          ]
+            "https://recruitee-mcp-server.fly.dev/mcp/",
+            "--header",
+            "Authorization: Bearer ${MCP_BEARER_TOKEN}"
+          ],
+          "env": {
+            "MCP_BEARER_TOKEN": "KEY"
+          }
         }
       }
     }

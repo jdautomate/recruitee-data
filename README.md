@@ -17,23 +17,23 @@ Unlike basic CRUD wrappers, this server focuses on the tasks where LLMs and AI a
 
 ## ✨ Features
 
-- **Advanced Candidate Search & Filtering**  
+* [x] **Advanced Candidate Search & Filtering**  
   Search for candidates by skills, status, talent pool, job, tags, and more. Example:  
   _"Find candidates with Elixir experience who were rejected due to salary expectations."_
 
-- **Recruitment Summary Reports**  
+* [ ] **Recruitment Summary Reports**  
   Generate summaries of recruitment activities, such as time spent in each stage, total process duration, and stage-by-stage breakdowns.
 
-- **Recruitment Statistics**  
+* [ ] **Recruitment Statistics**  
   Calculate averages and metrics (e.g., average expected salary for backend roles, average time to hire, contract type stats).
 
-- **General Search**  
+* [x] **General Search**  
   Quickly find candidates, recruitments, or talent pools by name or attribute.
 
-- **GDPR Compliance**  
+* [ ] **GDPR Compliance**  
   (Planned) Automatic deletion of personal data after 2 years, configurable per talent pool or recruitment.
 
-- **Prompt Templates**  
+* [x] **Prompt Templates**  
   Exposes prompt templates for LLM-based clients, ensuring consistent and high-quality summaries.
 
 ---

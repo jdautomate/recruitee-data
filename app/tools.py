@@ -42,10 +42,10 @@ async def _fetch_offers() -> list[dict]:
 @mcp.tool()
 async def list_offers() -> list[dict]:
     """Return all job offers (ID + title)."""
-    return [{"id": o["id"], "title": o["title"]} for o in await _fetch_offers()]
+    return [{"id": o["id"], "title": o["title"], "status": o["status"], "priority": o["priority"]} for o in await _fetch_offers()]
 
 @mcp.tool()
-async def get_offer(offer_id: int) -> dict:
+async def get_offer_details(offer_id: int) -> dict:
     """Return full available offer data."""
     data = await _get(f"/offers/{offer_id}")
     return data.get("offer", {})
@@ -78,7 +78,7 @@ async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="n
         ]
 
 @mcp.tool()
-async def get_talent_pool(talent_pool_id: int) -> dict:
+async def get_talent_pool_details(talent_pool_id: int) -> dict:
     """Return full details for a specific talent pool by ID."""
     data = await _get(f"/talent_pools/{talent_pool_id}")
     return data.get("talent_pool", {})
@@ -132,6 +132,12 @@ class CandidateSearchFilter(BaseModel):
     talent_pools: Optional[List[int]] = Field(None, description="Talent-pool ids from 'list_talent_pools'.")
     talent_pools_combiner: Optional[Literal["in", "not_in", "all_in"]] = Field("in", description="Combiner for talent pools. This field is required if 'talent_pools' is set.")
 
+    has_stage: Optional[bool] = Field(None, description="True if the candidate has a stage, False otherwise.")
+    on_stage: Optional[List[str]] = Field(None, description="Stage names from 'list_stages'.")
+
+    gdpr_expires_from: Optional[str] = Field(None, description="Earliest GDPR expiration date (ISO 8601 formatted date string).")
+    gdpr_expires_to: Optional[str] = Field(None, description="Latest GDPR expiration date (ISO 8601 formatted date string).")
+
     created_from: Optional[str] = Field(None, description="Earliest creation date (ISO 8601 formatted date string)")
     created_to: Optional[str] = Field(None, description="Latest creation date (ISO 8601 formatted date string)")
 
@@ -172,6 +178,22 @@ Helper tools convert human-readable names to IDs using cached look-ups.
     if search_filter.talent_pools and search_filter.talent_pools_combiner:
         filters.append({"filter":"talent_pools", "id":{search_filter.talent_pools_combiner: search_filter.talent_pools}})
 
+    if search_filter.has_stage is not None:
+        if search_filter.has_stage:
+            filters.append({"filter":"stages", "has_any":True})
+        else:
+            filters.append({"filter":"stages", "has_none":True})
+    if search_filter.on_stage is not None:
+        filters.append({"filter":"stages", "name": {"in": search_filter.on_stage}})
+
+    if search_filter.gdpr_expires_from or search_filter.gdpr_expires_to:
+        expires = {}
+        if search_filter.created_from:
+            expires["gte"] = iso_to_unix(search_filter.gdpr_expires_from)
+        if search_filter.created_to:
+            expires["lte"] = iso_to_unix(search_filter.gdpr_expires_to)
+        filters.append({"field": "gdpr_expires_at", **expires})
+
     if search_filter.created_from or search_filter.created_to:
         created = {}
         if search_filter.created_from:
@@ -187,10 +209,10 @@ Helper tools convert human-readable names to IDs using cached look-ups.
     }
 
     data = await _get("/search/new/candidates", params=params)
-    return [{"id": c["id"], "name": c["name"]} for c in data.get("hits", [])]
+    return [{"id": c["id"], "name": c["name"], "emails": c["emails"]} for c in data.get("hits", [])]
 
 @mcp.tool()
-async def get_candidate(candidate_id: int) -> dict:
+async def get_candidate_details(candidate_id: int) -> dict:
     """Return full available candidate data."""
     data = await _get(f"/candidates/{candidate_id}")
     return data.get("candidate", {})
@@ -198,6 +220,9 @@ async def get_candidate(candidate_id: int) -> dict:
 
 if __name__ == "__main__":
     import asyncio
-    search_filters = CandidateSearchFilter(talent_pools=[2118301], is_disqualified=True)
-    x = asyncio.run(search_candidates(search_filters))
-    print(f"{x}\n{len(x)}")
+    # search_filters = CandidateSearchFilter(talent_pools=[1853826], is_disqualified=True, on_stage=["Applied"])
+    # search_filters = CandidateSearchFilter(gdpr_expires_to="2025-05-20T12:30:00Z")
+    # x = asyncio.run(search_candidates(search_filters))
+    # x = asyncio.run(list_talent_pools())
+    x = asyncio.run(get_candidate_details(93872634))
+    print(f"{x['name']}\n{len(x)}")

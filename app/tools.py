@@ -50,6 +50,16 @@ async def get_offer_details(offer_id: int) -> dict:
     data = await _get(f"/offers/{offer_id}")
     return data.get("offer", {})
 
+@mcp.tool()
+async def get_offer_stages(offer_id: int) -> list[dict]:
+    """Return all pipeline stages for the given offer (ID + name + category + group)."""
+    data = await _get(f"/offers/{offer_id}")
+    data = data.get("offer", {}).get("pipeline_template", {}).get("stages", [])
+    return [
+        {"id": s["id"], "name": s["name"], "category": s["category"], "group": s["group"]}
+        for s in data
+    ]
+
 
 @alru_cache(ttl=900)
 async def _fetch_talent_pools() -> list[dict]:
@@ -104,18 +114,6 @@ async def _fetch_tags() -> list[dict]:
 async def list_candidate_tags() -> list[dict]:
     """Return every configured candidate tag (ID + name + count)."""
     return [{"id": t["id"], "name": t["name"], "count": t["taggings_count"]} for t in await _fetch_tags()]
-
-
-@mcp.tool()
-async def list_stages(offer_id: int) -> list[dict]:
-    """Return all pipeline stages for the given offer (ID + name + category + group)."""
-    data = await _get(f"/offers/{offer_id}")
-    data = data.get("offer", {}).get("pipeline_template", {}).get("stages", [])
-    return [
-        {"id": s["id"], "name": s["name"], "category": s["category"], "group": s["group"]}
-        for s in data
-    ]
-
 
 
 class CandidateSearchFilter(BaseModel):
@@ -215,6 +213,11 @@ async def search_candidate_by_query(query: str, search_name: bool = False, limit
     """Search candidates using a full-text query across name, email, and other fields.
 If `search_name` is False, only return candidates whose name exactly matches the query."""
 
+    if not query:
+        return []
+    if limit > 10_000:
+        raise ValueError("Recruitee caps limit at 10 000 per call.")
+
     filters = [{"field": "all", "query": query}]
     params = {
         "limit": limit,
@@ -229,10 +232,36 @@ If `search_name` is False, only return candidates whose name exactly matches the
     ]
 
 @mcp.tool()
-async def get_candidate_details(candidate_id: int) -> dict:
-    """Return full available candidate data."""
-    data = await _get(f"/candidates/{candidate_id}")
-    return data.get("candidate", {})
+async def get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
+    """Return specific fields or full available candidates data by their IDs.
+If fields is empty, return all fields. Find available fields using 'list_candidate_fields'."""
+    if not candidate_ids:
+        return []
+
+    details = []
+    for candidate_id in candidate_ids:
+        data = await _get(f"/candidates/{candidate_id}")
+        candidate_data = data.get("candidate", {})
+        if not fields:
+            details.append(candidate_data)
+        else:
+            filtered_data = {field: candidate_data.get(field) for field in fields if field in candidate_data}
+            details.append(filtered_data)
+
+    return details
+
+@mcp.tool()
+async def list_candidate_fields() -> list[str]:
+    """List all available candidate fields that can be requested in e.g. 'get_candidates_details'."""
+
+    data = await _get("/search/new/candidates", params={"limit": 1, "offset": 0})
+    data = data.get("hits", [])
+    if len(data) == 0:
+        return []
+    example_id = data[0]["id"]
+    data = await get_candidates_details([example_id], [])
+    return list(data[0].keys())
+
 
 
 if __name__ == "__main__":

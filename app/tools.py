@@ -153,8 +153,7 @@ class CandidateSearchFilter(BaseModel):
 @mcp.tool()
 async def search_candidates(search_filter: CandidateSearchFilter) -> list[dict]:
     """Return basic data for candidates who match a multi-field filter.
-Helper tools convert human-readable names to IDs using cached look-ups.
-    """
+Helper tools convert human-readable names to IDs using cached look-ups."""
 
     filters: List[Dict] = []
     if search_filter.offer_ids:
@@ -212,6 +211,24 @@ Helper tools convert human-readable names to IDs using cached look-ups.
     return [{"id": c["id"], "name": c["name"], "emails": c["emails"]} for c in data.get("hits", [])]
 
 @mcp.tool()
+async def search_candidate_by_query(query: str, search_name: bool = False, limit: int = 100, offset: int = 0) -> list[dict]:
+    """Search candidates using a full-text query across name, email, and other fields.
+If `search_name` is False, only return candidates whose name exactly matches the query."""
+
+    filters = [{"field": "all", "query": query}]
+    params = {
+        "limit": limit,
+        "offset": offset,
+        "filters_json": json.dumps(filters),
+    }
+    data = await _get("/search/new/candidates", params=params)
+    return [
+        {"id": c["id"], "name": c["name"], "emails": c["emails"]}
+        for c in data.get("hits", [])
+        if not search_name or c["name"] == query
+    ]
+
+@mcp.tool()
 async def get_candidate_details(candidate_id: int) -> dict:
     """Return full available candidate data."""
     data = await _get(f"/candidates/{candidate_id}")
@@ -220,9 +237,7 @@ async def get_candidate_details(candidate_id: int) -> dict:
 
 if __name__ == "__main__":
     import asyncio
-    # search_filters = CandidateSearchFilter(talent_pools=[1853826], is_disqualified=True, on_stage=["Applied"])
-    # search_filters = CandidateSearchFilter(gdpr_expires_to="2025-05-20T12:30:00Z")
-    # x = asyncio.run(search_candidates(search_filters))
-    # x = asyncio.run(list_talent_pools())
-    x = asyncio.run(get_candidate_details(93872634))
-    print(f"{x['name']}\n{len(x)}")
+    search_filters = CandidateSearchFilter(talent_pools=[1853826], is_disqualified=True, on_stage=["Applied"])
+    x = asyncio.run(search_candidates(search_filters))
+
+    print(f"{x}\n{len(x)}")

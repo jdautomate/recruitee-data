@@ -263,6 +263,20 @@ async def list_candidate_fields() -> list[str]:
     return list(data[0].keys())
 
 
+@mcp.tool()
+async def get_candidate_notes(candidate_id: int, limit: int = 100, offset: int = 0) -> list[dict]:
+    """Fetch plain-text notes attached to a candidate profile."""
+    params = {"limit": limit, "offset": offset}
+    data = await _get(f"/candidates/{candidate_id}/notes", params=params)
+    return data.get("notes", [])
+
+@mcp.tool()
+async def get_offer_notes(offer_id: int, limit: int = 100, offset: int = 0) -> list[dict]:
+    """Fetch plain-text notes attached to an offer."""
+    params = {"limit": limit, "offset": offset}
+    data = await _get(f"/offers/{offer_id}/notes", params=params)
+    return data.get("notes", [])
+
 
 if __name__ == "__main__":
     import asyncio

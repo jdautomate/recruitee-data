@@ -68,7 +68,7 @@ async def _fetch_talent_pools() -> list[dict]:
 
 @mcp.tool()
 async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="not_archived") -> list[dict]:
-    """Return all talent pools (ID + name + status) with optional status filter."""
+    """Return all talent pools (ID + name + status) with an optional status filter."""
     if scope == "all":
         return [
             {"id": tp["id"], "title": tp["title"], "status": tp["status"]}
@@ -86,6 +86,8 @@ async def list_talent_pools(scope: Literal["not_archived", "archived", "all"]="n
             for tp in await _fetch_talent_pools()
             if tp["status"] == "archived"
         ]
+    else:
+        raise ValueError("Invalid scope. Use 'not_archived', 'archived', or 'all'.")
 
 @mcp.tool()
 async def get_talent_pool_details(talent_pool_id: int) -> dict:
@@ -234,7 +236,7 @@ If `search_name` is False, only return candidates whose name exactly matches the
 @mcp.tool()
 async def get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
     """Return specific fields or full available candidates data by their IDs.
-If fields is empty, return all fields. Find available fields using 'list_candidate_fields'."""
+If fields are empty, return all fields. Find available fields using 'list_candidate_fields'."""
     if not candidate_ids:
         return []
 
@@ -259,8 +261,8 @@ async def list_candidate_fields() -> list[str]:
     if len(data) == 0:
         return []
     example_id = data[0]["id"]
-    data = await get_candidates_details([example_id], [])
-    return list(data[0].keys())
+    candidate_details = await get_candidates_details([example_id], [])
+    return list(candidate_details[0].keys())
 
 
 @mcp.tool()

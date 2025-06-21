@@ -6,7 +6,7 @@ import uvicorn
 from src.utils.server_config import mcp
 from src.utils.auth import BearerAuthMiddleware
 
-from src.tools import tools, prompts # noqa: F401
+from src.tools import candidates, lookup, metrics, utils, prompts # noqa: F401
 
 
 

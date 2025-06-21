@@ -16,5 +16,5 @@ RECRUITEE_API_TOKEN = os.getenv("RECRUITEE_API_TOKEN")
 # Initialize the MCP server
 mcp = FastMCP(
     name="Recruitee Server",
-    description="A server for Recruitee API",
+    instructions="A server for Recruitee API",
 )

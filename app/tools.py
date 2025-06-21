@@ -384,24 +384,62 @@ class TimeBasedMetricQueryParams(MetricQueryParams):
 
 
 @mcp.tool()
-async def get_metric_data(mqp: SingleMetricQueryParams | TrendMetricQueryParams |
-                                      BreakdownMetricQueryParams | FunnelMetricQueryParams | TimeBasedMetricQueryParams,
-                                 kind: Literal["single_metric", "trend", "breakdown", "funnel", "time_based"]) -> dict:
-    """Fetch data for a single metric based on the provided query parameters.
-The `kind` parameter is metric-specific and determines how the data is processed."""
+async def get_single_metric_data(mqp: SingleMetricQueryParams) -> dict:
+    """Fetch data for a single metric based on the provided query parameters, e.g., `fill_rate`. Must match the metric kind"""
     params = mqp.model_dump(exclude_none=True, exclude_defaults=False)
-    data = await _get(f"/report/{kind}", params=params)
+    data = await _get(f"/report/single_metric", params=params)
     return {
         "results": data.get("results", {}),
         "meta": data.get("meta", {})
     }
+
+@mcp.tool()
+async def get_trend_metric_data(mqp: TrendMetricQueryParams) -> dict:
+    """Fetch trend data for a metric based on the provided query parameters, e.g., `disqualifications_over_time`. Must match the metric kind"""
+    params = mqp.model_dump(exclude_none=True, exclude_defaults=False)
+    data = await _get(f"/report/trend", params=params)
+    return {
+        "results": data.get("results", {}),
+        "meta": data.get("meta", {})
+    }
+
+@mcp.tool()
+async def get_breakdown_metric_data(mqp: BreakdownMetricQueryParams) -> dict:
+    """Fetch breakdown data for a metric based on the provided query parameters, e.g., `jobs`. Must match the metric kind"""
+    params = mqp.model_dump(exclude_none=True, exclude_defaults=False)
+    data = await _get(f"/report/breakdown", params=params)
+    return {
+        "results": data.get("results", {}),
+        "meta": data.get("meta", {})
+    }
+
+@mcp.tool()
+async def get_funnel_metric_data(mqp: FunnelMetricQueryParams) -> dict:
+    """Fetch funnel data for a metric based on the provided query parameters, e.g., `dropoff_rate`. Must match the metric kind"""
+    params = mqp.model_dump(exclude_none=True, exclude_defaults=False)
+    data = await _get(f"/report/funnel", params=params)
+    return {
+        "results": data.get("results", {}),
+        "meta": data.get("meta", {})
+    }
+
+@mcp.tool()
+async def get_time_based_metric_data(mqp: TimeBasedMetricQueryParams) -> dict:
+    """Fetch data for `custom_time_based` metric on the provided query parameters."""
+    params = mqp.model_dump(exclude_none=True, exclude_defaults=False)
+    data = await _get(f"/report/time_based", params=params)
+    return {
+        "results": data.get("results", {}),
+        "meta": data.get("meta", {})
+    }
+
 
 if __name__ == "__main__":
     import asyncio
     # search_filters = CandidateSearchFilter(talent_pools=[1853826], is_disqualified=True, on_stage=["Applied"])
     # x = asyncio.run(search_candidates(search_filters))
 
-    metric_params = BreakdownMetricQueryParams(metric="candidates", primary_group="disqualify-reason", date_range="last_30_days")
-    x = asyncio.run(get_metric_data(metric_params, kind="breakdown"))
+    metric_params = BreakdownMetricQueryParams(metric="disqualifications", primary_group="disqualify-reason", filters="job:2114902")
+    x = asyncio.run(get_breakdown_metric_data(metric_params))
 
     print(f"{x}\n{len(x)}")

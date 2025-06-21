@@ -77,7 +77,7 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
       "mcpServers": {
         "recruitee": {
           "command": "/path/to/.venv/bin/python",
-          "args": ["/path/to/recruitee-mcp-server/app/app.py", "--transport", "stdio"]
+          "args": ["/path/to/recruitee-mcp-server/src/app.py", "--transport", "stdio"]
         }
       }
     }

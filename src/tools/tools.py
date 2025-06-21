@@ -6,7 +6,7 @@ import httpx
 from async_lru import alru_cache
 from pydantic import BaseModel, Field, field_validator
 
-from server_config import mcp, RECRUITEE_COMPANY_ID, RECRUITEE_API_TOKEN
+from src.utils.server_config import mcp, RECRUITEE_COMPANY_ID, RECRUITEE_API_TOKEN
 
 
 

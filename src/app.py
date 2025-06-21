@@ -3,9 +3,10 @@ import argparse
 
 import uvicorn
 
-from server_config import mcp
-from auth import BearerAuthMiddleware
-import tools, prompts    # noqa: F401
+from src.utils.server_config import mcp
+from src.utils.auth import BearerAuthMiddleware
+
+from src.tools import tools, prompts # noqa: F401
 
 
 

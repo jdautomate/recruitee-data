@@ -1,4 +1,4 @@
-from server_config import mcp
+from src.utils.server_config import mcp
 
 
 

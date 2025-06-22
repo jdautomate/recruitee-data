@@ -1,4 +1,5 @@
 from textwrap import dedent
+from pathlib import Path
 
 from src.utils.server_config import mcp
 
@@ -61,3 +62,18 @@ def candidate_details_prompt() -> str:
     **Formatting rules**
     Use markdown formatting. 
     """)
+
+
+@mcp.tool()
+def instructions() -> str:
+    """Return the general guidelines for the whole Recruitee MCP server. Should be loaded before using any other tools."""
+    return dedent("""
+        Don't calculate statistics on your own if they can be fetched from metric tools. 
+    """)
+
+
+@mcp.tool()
+def recruitment_report_prompt() -> str:
+    """Return the prompt with instructions and a template for a recruitment report."""
+    path = Path(__file__).parent / "report.md"
+    return path.read_text(encoding="utf-8")

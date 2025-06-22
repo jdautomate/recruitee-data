@@ -12,9 +12,12 @@ _TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 async def _get(path: str, params: dict | None = None) -> dict:
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.get(f"{_API}{path}", headers=_HEADERS, params=params)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            resp = await client.get(f"{_API}{path}", headers=_HEADERS, params=params)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as e:
+            raise ValueError(f"Recruitee API failed: {e.response.status_code}, {e.response.text}")
 
 
 def iso_to_unix(iso_string: str) -> int:
@@ -25,5 +28,8 @@ def iso_to_unix(iso_string: str) -> int:
     Returns:
         int: Unix timestamp (seconds since 1970-01-01T00:00:00Z)
     """
-    dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
-    return int(dt.timestamp())
+    try:
+        dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
+        return int(dt.timestamp())
+    except Exception as e:
+        raise ValueError(f"Invalid ISO date string: {iso_string}") from e

@@ -123,10 +123,7 @@ If `search_name` is False, only return candidates whose name exactly matches the
         if not search_name or c["name"] == query
     ]
 
-@mcp.tool()
-async def get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
-    """Return specific fields or full available candidates data by their IDs.
-If fields are empty, return all fields. Find available fields using 'list_candidate_fields'."""
+async def _get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
     if not candidate_ids:
         return []
 
@@ -143,6 +140,13 @@ If fields are empty, return all fields. Find available fields using 'list_candid
     return details
 
 @mcp.tool()
+async def get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
+    """Return specific fields or full available candidates data by their IDs.
+If fields are empty, return all fields. Find available fields using 'list_candidate_fields'."""
+    details = await _get_candidates_details(candidate_ids, fields)
+    return details
+
+@mcp.tool()
 async def list_candidate_fields() -> list[str]:
     """List all available candidate fields that can be requested in e.g. 'get_candidates_details'."""
 
@@ -151,7 +155,7 @@ async def list_candidate_fields() -> list[str]:
     if len(data) == 0:
         return []
     example_id = data[0]["id"]
-    candidate_details = await get_candidates_details([example_id], [])
+    candidate_details = await _get_candidates_details([example_id], [])
     return list(candidate_details[0].keys())
 
 

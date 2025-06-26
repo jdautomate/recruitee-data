@@ -91,6 +91,17 @@ async def list_tags() -> list[dict]:
     return [{"id": t["id"], "name": t["name"], "count": t["taggings_count"]} for t in await _fetch_tags()]
 
 
+@alru_cache(ttl=900)
+async def _fetch_custom_fields() -> list[dict]:
+    data = await _get("/custom_fields/fields/searchable")
+    return data.get("fields", [])
+
+@mcp.tool()
+async def list_custom_fields() -> list[dict]:
+    """Return every searchable custom field."""
+    data = await _fetch_custom_fields()
+    return data
+
 
 if __name__ == "__main__":
     import asyncio

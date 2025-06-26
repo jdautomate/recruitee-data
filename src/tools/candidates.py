@@ -31,6 +31,9 @@ class CandidateSearchFilter(BaseModel):
     created_from: Optional[str] = Field(None, description="Earliest creation date (ISO 8601 formatted date string)")
     created_to: Optional[str] = Field(None, description="Latest creation date (ISO 8601 formatted date string)")
 
+    custom_fields: Optional[str] = Field(None, description="Custom field 'search_key' from 'list_custom_fields'.")
+    custom_fields_combiner: Optional[Literal["has_any", "has_none"]] = Field(None, description="Type of filter for custom fields. This field is required if 'custom_fields' is set.")
+
     limit: int = Field(100, description="Page size (max 10 000)")
     offset: int = Field(0, description="Paging offset")
 
@@ -90,6 +93,9 @@ Helper tools convert human-readable names to IDs using cached look-ups."""
         if search_filter.created_to:
             created["lte"] = iso_to_unix(search_filter.created_to)
         filters.append({"field": "created_at", **created})
+
+    if search_filter.custom_fields and search_filter.custom_fields_combiner:
+        filters.append({"filter": search_filter.custom_fields, search_filter.custom_fields_combiner: True})
 
     params = {
         "limit": search_filter.limit,

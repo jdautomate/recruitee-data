@@ -14,7 +14,7 @@
   - If retrieving a metric fails, try again after checking the metric details and available options.
 - Generate charts and gather URLs for charts if using MCP server for charts.
 - Generate the report using the template.
-- Use markdown_to_url tool and print the URL for the user.
+- Ask the user if they want to generate a URL for the report. If yes, use the markdown_to_url tool and print the URL.
 
 ---
 

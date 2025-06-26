@@ -3,6 +3,7 @@
 ENV_FILE := ./.env
 IMAGE_NAME := recruitee-mcp-server
 PORT := 8000
+FLY_VOLUME_REGION := waw
 
 
 .PHONY: set-secrets deploy build run-local run-local-fresh stop clean
@@ -16,6 +17,9 @@ set-secrets:
 deploy: set-secrets
 	@flyctl deploy
 
+
+create_volume:
+	@flyctl volumes create documents_data --size 1 -n 1 --region $(FLY_VOLUME_REGION) -y
 
 ## Run stdio locally
 stdio:

@@ -2,12 +2,30 @@ import os
 import argparse
 
 import uvicorn
+from fastapi.staticfiles import StaticFiles
 
 from src.utils.server_config import mcp
-from src.utils.auth import BearerAuthMiddleware
+from src.utils.auth import BearerAuthMiddleware, LoginPasswordMiddleware
 
 from src.tools import candidates, lookup, metrics, utils  # noqa: F401
 from src.prompts import prompts # noqa: F401
+
+
+def mount_static_files(app):
+    """Helper function to mount static files to the FastAPI app."""
+    # Use Fly volume mount path for persistent storage
+    documents_dir = "/data"
+    
+    # Ensure the directory exists
+    os.makedirs(documents_dir, exist_ok=True)
+    
+    if os.path.exists(documents_dir):
+        app.mount("/documents", StaticFiles(directory=documents_dir), name="documents")
+        print(f"Static files mounted at /documents from {documents_dir}")
+        return True
+    else:
+        print(f"Warning: Documents directory not found at {documents_dir}")
+        return False
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,7 +81,9 @@ if __name__ == "__main__":
         app = mcp.http_app(
             path=args.path,
         )
-        app.add_middleware(BearerAuthMiddleware)
+        app.add_middleware(BearerAuthMiddleware, protected_paths=["/mcp"])
+        app.add_middleware(LoginPasswordMiddleware, protected_paths=["/documents"])
+        mount_static_files(app)
         uvicorn.run(app, host=args.host, port=args.port)
 
     elif args.transport == "sse":

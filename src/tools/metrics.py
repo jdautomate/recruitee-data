@@ -43,7 +43,7 @@ class MetricQueryParams(BaseModel):
     date_range: Optional[Literal[
         "range", "today", "yesterday", "this_week", "last_week", "this_month", "last_month",
         "this_quarter", "last_quarter", "this_year", "last_year", "last_7_days",
-        "last_14_days", "last_30_days", "last_60_days", "last_90_days", "last_365_days"
+        "last_14_days", "last_30_days", "last_60_days", "last_90_days", "last_365_days", "all_time"
     ]] = Field(None, description="Date filter range. From get_metric_details -> available_date_filters")
     date_start: Optional[str] = Field(None, description="Start date when using date_range='range'. Format: 'YYYY-MM-DD'.")
     date_end: Optional[str] = Field(None, description="End date when using date_range='range'. Format: 'YYYY-MM-DD'.")

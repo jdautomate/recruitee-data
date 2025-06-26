@@ -31,6 +31,9 @@ class CandidateSearchFilter(BaseModel):
     created_from: Optional[str] = Field(None, description="Earliest creation date (ISO 8601 formatted date string)")
     created_to: Optional[str] = Field(None, description="Latest creation date (ISO 8601 formatted date string)")
 
+    custom_fields: Optional[str] = Field(None, description="Custom field 'search_key' from 'list_custom_fields'.")
+    custom_fields_combiner: Optional[Literal["has_any", "has_none"]] = Field(None, description="Type of filter for custom fields. This field is required if 'custom_fields' is set.")
+
     limit: int = Field(100, description="Page size (max 10 000)")
     offset: int = Field(0, description="Paging offset")
 
@@ -91,6 +94,9 @@ Helper tools convert human-readable names to IDs using cached look-ups."""
             created["lte"] = iso_to_unix(search_filter.created_to)
         filters.append({"field": "created_at", **created})
 
+    if search_filter.custom_fields and search_filter.custom_fields_combiner:
+        filters.append({"filter": search_filter.custom_fields, search_filter.custom_fields_combiner: True})
+
     params = {
         "limit": search_filter.limit,
         "offset": search_filter.offset,
@@ -123,10 +129,7 @@ If `search_name` is False, only return candidates whose name exactly matches the
         if not search_name or c["name"] == query
     ]
 
-@mcp.tool()
-async def get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
-    """Return specific fields or full available candidates data by their IDs.
-If fields are empty, return all fields. Find available fields using 'list_candidate_fields'."""
+async def _get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
     if not candidate_ids:
         return []
 
@@ -143,6 +146,13 @@ If fields are empty, return all fields. Find available fields using 'list_candid
     return details
 
 @mcp.tool()
+async def get_candidates_details(candidate_ids: list[int], fields: list[str]) -> list[dict]:
+    """Return specific fields or full available candidates data by their IDs.
+If fields are empty, return all fields. Find available fields using 'list_candidate_fields'."""
+    details = await _get_candidates_details(candidate_ids, fields)
+    return details
+
+@mcp.tool()
 async def list_candidate_fields() -> list[str]:
     """List all available candidate fields that can be requested in e.g. 'get_candidates_details'."""
 
@@ -151,7 +161,7 @@ async def list_candidate_fields() -> list[str]:
     if len(data) == 0:
         return []
     example_id = data[0]["id"]
-    candidate_details = await get_candidates_details([example_id], [])
+    candidate_details = await _get_candidates_details([example_id], [])
     return list(candidate_details[0].keys())
 
 

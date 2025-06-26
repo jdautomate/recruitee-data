@@ -1,7 +1,8 @@
 from datetime import datetime
 import httpx
+import markdown
 
-from src.utils.server_config import RECRUITEE_COMPANY_ID, RECRUITEE_API_TOKEN
+from src.utils.server_config import mcp, RECRUITEE_COMPANY_ID, RECRUITEE_API_TOKEN
 
 
 
@@ -33,3 +34,30 @@ def iso_to_unix(iso_string: str) -> int:
         return int(dt.timestamp())
     except Exception as e:
         raise ValueError(f"Invalid ISO date string: {iso_string}") from e
+
+
+@mcp.tool()
+async def markdown_to_html(markdown_str: str) -> str:
+    """Convert Markdown text to HTML and return URL to rendered HTML resource."""
+    if not markdown_str:
+        return ""
+    try:
+        html = markdown.markdown(
+            markdown_str,
+            extensions=["extra", "codehilite"]
+        )
+        
+        # Use StaticResource instead of Resource
+        from fastmcp.resources import StaticResource
+        
+        resource_uri = f"/html/{datetime.now().timestamp()}"
+        resource = StaticResource(
+            uri=resource_uri,
+            content=html,
+            mimeType="text/html"
+        )
+        
+        resource_url = mcp.add_resource(resource)
+        return resource_url
+    except Exception as e:
+        raise ValueError(f"Error converting Markdown to HTML: {e}") from e

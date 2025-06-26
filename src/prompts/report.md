@@ -4,6 +4,7 @@
 - Report should be generated in Markdown format. No additional text should be included outside the report.
 - Ensure all metrics are formatted correctly. Instead of seconds use days or hours, depending on value.
 - The currency unit is PLN
+- Use abbreviated names (e.g., "Joe D." instead of full names) for charts labels.
 
 ## Instructions for report generation
 - Before generating the report ask the user for a specific recruitment and optionally a date range.
@@ -73,7 +74,7 @@ Analysis of the above metrics to identify trends, bottlenecks, and areas for imp
 - Total interviewer time investment: <sum the column "Time Spent" from the table, it's different from the total interview session time metric>
 
 ### Stage per interviewer
-<use `candidates` breakdown metric with `primary_group: "participant"`, `secondary_group: "stage"`. Filter out rows where a participant is `"__empty__"` or `"No Interviewer Assigned"`. Create a stacked column chart.>
+<use `candidates` breakdown metric with `primary_group: "participant"`, `secondary_group: "stage"`. Filter out rows where a participant is `"__empty__"` or `"No Interviewer Assigned"`. Create a stacked column chart where: `stack: true` and `group: false`.>
 
 ### Hires by recruiter
 <use `hires` breakdown metric with `primary_group: "recruiter"`. Create a simple Markdown table with columns: Recruiter, Hires. Sort by hire count in descending order.>

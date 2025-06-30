@@ -2,12 +2,12 @@
 - Follow the template provided below to generate a recruitment report.
 - Instructions for tools usage are provided in the template in `<instructions here>` format.
 - Report should be generated in Markdown format. No additional text should be included outside the report.
-- Ensure all metrics are formatted correctly. Don't show time in seconds, instead use days or hours, depending on value.
+- Ensure all metrics are formatted correctly. Never show time in seconds, instead use days or hours, depending on value.
 - The currency unit is PLN
 - Use abbreviated names (e.g., "Joe D." instead of full names) for charts labels.
 
 ## Instructions for report generation
-- Before generating the report ask the user for a specific recruitment and optionally a date range.
+- Before generating the report ask the user for a specific recruitment and a date range.
 - Find the offer ID using `list_offers` tool.
 - List all available metrics. Metric kind must match the tool.
 - Read the template carefully and retrieve all necessary metrics.

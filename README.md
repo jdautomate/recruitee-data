@@ -21,17 +21,14 @@ Unlike basic CRUD wrappers, this server focuses on the tasks where LLMs and AI a
   Search for candidates by skills, status, talent pool, job, tags, and more. Example:  
   _"Find candidates with Elixir experience who were rejected due to salary expectations."_
 
-* [ ] **Recruitment Summary Reports**  
+* [x] **Recruitment Summary Reports**  
   Generate summaries of recruitment activities, such as time spent in each stage, total process duration, and stage-by-stage breakdowns.
 
-* [ ] **Recruitment Statistics**  
+* [x] **Recruitment Statistics**  
   Calculate averages and metrics (e.g., average expected salary for backend roles, average time to hire, contract type stats).
 
 * [x] **General Search**  
   Quickly find candidates, recruitments, or talent pools by name or attribute.
-
-* [ ] **GDPR Compliance**  
-  (Planned) Automatic deletion of personal data after 2 years, configurable per talent pool or recruitment.
 
 * [x] **Prompt Templates**  
   Exposes prompt templates for LLM-based clients, ensuring consistent and high-quality summaries.
@@ -44,6 +41,10 @@ Unlike basic CRUD wrappers, this server focuses on the tasks where LLMs and AI a
 - _Show me their personal details including CV URL._
 - _Why was candidate 'X' disqualified and at what stage?_
 - _What are the other stages for this offer?_
+- _Show candidates whose GDPR certification expires this month._
+- _What's time to fill sales assistant offer?_
+- _Create a pie chart with sources for AI engineer offer._
+- _Create a recruitment report._
 
 ---
 
@@ -67,6 +68,7 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
 ---
 
 ## 🧪 Usage
+💡 **Tip:** For data visualization, combine this with chart-specific MCP servers like [mcp-server-chart](https://github.com/antvis/mcp-server-chart)
 
 ### Local (stdio)
 
@@ -90,21 +92,7 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
     ```
 
 ### Remote (streamable-http)
-
-1. **Configure your MCP client:**
-
-    ```json
-    {
-      "mcpServers": {
-        "recruitee": {
-          "transport": "streamable-http",
-          "url": "https://recruitee-mcp-server.fly.dev/mcp"
-        }
-      }
-    }
-    ```
-
-2. **Or use [mcp-remote](https://github.com/chrishayuk/mcp-remote) for free-tier clients:**
+1. **Use [mcp-remote](https://github.com/chrishayuk/mcp-remote):**
 
     ```json
     {
@@ -125,6 +113,20 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
     }
     ```
 
+
+2. **or use directly if client supports bearer token authorization**
+
+    ```json
+    {
+      "mcpServers": {
+        "recruitee": {
+          "transport": "streamable-http",
+          "url": "https://recruitee-mcp-server.fly.dev/mcp"
+        }
+      }
+    }
+    ```
+
 ---
 
 ## ☁️ Deployment
@@ -132,14 +134,16 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
 ### Deploy to Fly.io
 
 1. **Set your secrets in `.env**
-2. **Deploy:**
+2. **Create a volume**
+    ```bash
+    make create_volume
+    ```
+3. **Deploy:**
 
     ```bash
     flyctl auth login
     make deploy
     ```
-
-- The server is live at: [https://recruitee-mcp-server.fly.dev/](https://recruitee-mcp-server.fly.dev/)
 
 ---
 
@@ -149,7 +153,7 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
 - [Recruitee API Docs](https://docs.recruitee.com/reference/intro-to-careers-site-api)
 - [Model Context Protocol (MCP)](https://github.com/chrishayuk/model-context-protocol)
 - [FastMCP Framework](https://github.com/chrishayuk/fastmcp)
-
+- [MCP Server for Charts](https://github.com/antvis/mcp-server-chart)
 ---
 
 ## 🤝 Contributing

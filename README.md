@@ -159,7 +159,6 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!  
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 

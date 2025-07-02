@@ -133,7 +133,7 @@ The server retrieves and processes data from Recruitee, exposing it via MCP tool
 
 ### Deploy to Fly.io
 
-1. **Set your secrets in `.env**
+1. **Set your secrets in `.env`**
 2. **Create a volume**
     ```bash
     make create_volume

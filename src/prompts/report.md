@@ -5,6 +5,7 @@
 - Ensure all metrics are formatted correctly. Never show time in seconds, instead use days or hours, depending on value.
 - The currency unit is PLN
 - Use abbreviated names (e.g., "Joe D." instead of full names) for charts labels.
+- Use user's language for report.
 
 ## Instructions for report generation
 - Before generating the report ask the user for a specific recruitment and a date range.
@@ -20,7 +21,11 @@
 ---
 
 # <job title> Recruitment Report
-Date Range: <start date> to <end date>
+Date Range: <date range provided by user> \
+Position Created: \
+Position Published: \
+Position Closed: \
+<use `get_offers_details` with `fields=["created_at", "published_at", "closed_at"]`>
 
 ## Single Metrics
 - Time to fill: <use `job_open_time` single metric with `include_archived_jobs: true`>

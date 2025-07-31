@@ -42,3 +42,7 @@ docker-stop:
 ## Clean up Docker
 clean:
 	-@docker rmi $(IMAGE_NAME) || true
+
+
+run-%:
+	@uv run python -m src.tools.$*

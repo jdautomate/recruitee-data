@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from src.utils.server_config import mcp
 from src.utils.auth import BearerAuthMiddleware, LoginPasswordMiddleware
 
-from src.tools import candidates, lookup, metrics, utils  # noqa: F401
+from src.tools import candidates, offers, lookup, metrics, utils  # noqa: F401
 from src.prompts import prompts # noqa: F401
 
 

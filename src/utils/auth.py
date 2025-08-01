@@ -20,13 +20,17 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         
         expected = os.getenv("MCP_BEARER_TOKEN")
+        if not expected:
+            return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Server misconfiguration - MCP_BEARER_TOKEN not set"})
+        
         header = request.headers.get("authorization")
-
-        if expected and header != f"Bearer {expected}":
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Unauthorized"},
-            )
+        if not header or not header.startswith("Bearer "):
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Missing authorization header"})
+        
+        token = header.split(" ")[1] if len(header.split(" ")) > 1 else ""
+        if token != expected:
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Unauthorized"})
+        
         return await call_next(request)
 
 
@@ -42,29 +46,44 @@ class LoginPasswordMiddleware(BaseHTTPMiddleware):
         if not path_requires_login:
             return await call_next(request)
         
+        auth_token_secret = os.getenv("DOCUMENTS_TOKEN")
+        docs_username = os.getenv("DOCUMENTS_USERNAME")
+        docs_password = os.getenv("DOCUMENTS_PASSWORD")
+        
+        if not auth_token_secret:
+            return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Server misconfiguration - DOCUMENTS_TOKEN not set"})
+        if not docs_username or not docs_password:
+            return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Server misconfiguration - DOCUMENTS_USERNAME or DOCUMENTS_PASSWORD not set"})
+        
         auth_token = request.cookies.get("auth_token")
-        if auth_token and self._verify_token(auth_token):
+        if auth_token and self._verify_token(auth_token, auth_token_secret):
             return await call_next(request)
         
         if request.method == "POST":
+            is_secure = request.url.scheme == "https"
             form = await request.form()
             username = form.get("username")
             password = form.get("password")
             
-            expected_username = os.getenv("DOCUMENTS_USERNAME")
-            expected_password = os.getenv("DOCUMENTS_PASSWORD")
-            
-            if username == expected_username and password == expected_password:
+            if username == docs_username and password == docs_password:
                 response = RedirectResponse(url=str(request.url), status_code=302)
-                response.set_cookie("auth_token", "authenticated", max_age=3600*24*7, httponly=True)
+                response.set_cookie(
+                    "auth_token", 
+                    auth_token_secret,
+                    max_age=3600*24*7,
+                    httponly=True,
+                    secure=is_secure,
+                    samesite="strict",
+                    path="/documents"
+                )
                 return response
             else:
                 return self._show_login_form(error="Invalid username or password")
         return self._show_login_form()
 
     @staticmethod
-    def _verify_token(token: str) -> bool:
-        return token == "authenticated"
+    def _verify_token(token: str, expected_secret: str) -> bool:
+        return token == expected_secret
 
     @staticmethod
     def _show_login_form(error: str = None):

@@ -4,7 +4,16 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from fastapi import Request, status
 from fastapi.responses import JSONResponse, HTMLResponse
+
 from starlette.responses import RedirectResponse
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+
+
+# Create rate limiter instance
+limiter = Limiter(key_func=get_remote_address)
 
 
 class BearerAuthMiddleware(BaseHTTPMiddleware):
@@ -60,6 +69,17 @@ class LoginPasswordMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         
         if request.method == "POST":
+            # Rate limiting: 3 login attempts per minute per IP address
+            try:
+                from limits import parse
+                rate_limit = parse("3/minute")
+                client_ip = get_remote_address(request)
+                if not limiter._limiter.test(rate_limit, client_ip):
+                    return self._show_login_form(error="Too many login attempts. Please try again later.")
+                limiter._limiter.hit(rate_limit, client_ip)
+            except Exception:
+                pass
+            
             is_secure = request.url.scheme == "https"
             form = await request.form()
             username = form.get("username")

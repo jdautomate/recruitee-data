@@ -5,10 +5,13 @@ import uvicorn
 from fastapi.staticfiles import StaticFiles
 
 from src.utils.server_config import mcp
-from src.utils.auth import BearerAuthMiddleware, LoginPasswordMiddleware
+from src.utils.auth import BearerAuthMiddleware, LoginPasswordMiddleware, limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from src.tools import candidates, offers, lookup, metrics, utils  # noqa: F401
 from src.prompts import prompts # noqa: F401
+
 
 
 def mount_static_files(app):
@@ -81,6 +84,11 @@ if __name__ == "__main__":
         app = mcp.http_app(
             path=args.path,
         )
+        # Configure rate limiter
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        
+        # Add security middlewares
         app.add_middleware(BearerAuthMiddleware, protected_paths=["/mcp"])
         app.add_middleware(LoginPasswordMiddleware, protected_paths=["/documents"])
         mount_static_files(app)

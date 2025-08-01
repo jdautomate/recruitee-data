@@ -14,7 +14,7 @@ from src.prompts import prompts # noqa: F401
 def mount_static_files(app):
     """Helper function to mount static files to the FastAPI app."""
     # Use Fly volume mount path for persistent storage
-    documents_dir = "/data"
+    documents_dir = os.getenv("DOCUMENTS_DIR") or "./data"
     
     # Ensure the directory exists
     os.makedirs(documents_dir, exist_ok=True)

@@ -136,7 +136,7 @@ async def markdown_to_url(markdown_str: str) -> str:
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"report_{timestamp}.html"
-        documents_dir = "/data"
+        documents_dir = os.getenv("DOCUMENTS_DIR") or "./data"
         os.makedirs(documents_dir, exist_ok=True)
         file_path = os.path.join(documents_dir, filename)
         with open(file_path, 'w', encoding='utf-8') as f:

@@ -1,4 +1,7 @@
 import os
+import re
+from html import escape
+from typing import Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -12,8 +15,50 @@ from slowapi.util import get_remote_address
 
 
 
-# Create rate limiter instance
 limiter = Limiter(key_func=get_remote_address)
+
+
+class InputValidator:
+    @staticmethod
+    def sanitize_string(value: Optional[str], max_length: int = 100) -> str:
+        """Sanitize and validate string input"""
+        if not value:
+            return ""
+        # Convert to string and strip whitespace
+        sanitized = str(value).strip()
+        # Escape HTML entities to prevent XSS
+        sanitized = escape(sanitized)
+        # Enforce length limit
+        if len(sanitized) > max_length:
+            return ""
+        return sanitized
+    
+    @staticmethod
+    def validate_username(username: str) -> tuple[bool, str]:
+        """Validate username format and content"""
+        if not username:
+            return False, "Username is required"
+        if len(username) < 3:
+            return False, "Username too short"
+        if len(username) > 50:
+            return False, "Username too long"
+        # Allow alphanumeric, underscore, dash, dot, @
+        if not re.match(r'^[a-zA-Z0-9._@-]+$', username):
+            return False, "Invalid username format"
+        
+        return True, ""
+    
+    @staticmethod
+    def validate_password(password: str) -> tuple[bool, str]:
+        """Validate password format and content"""
+        if not password:
+            return False, "Password is required"
+        if len(password) < 1:
+            return False, "Password too short"
+        if len(password) > 128:
+            return False, "Password too long"
+        
+        return True, ""
 
 
 class BearerAuthMiddleware(BaseHTTPMiddleware):
@@ -82,10 +127,23 @@ class LoginPasswordMiddleware(BaseHTTPMiddleware):
             
             is_secure = request.url.scheme == "https"
             form = await request.form()
-            username = form.get("username")
-            password = form.get("password")
             
-            if username == docs_username and password == docs_password:
+            raw_username = form.get("username")
+            raw_password = form.get("password")
+            
+            username = InputValidator.sanitize_string(raw_username, max_length=50)
+            password = InputValidator.sanitize_string(raw_password, max_length=128)
+            
+            username_valid, username_error = InputValidator.validate_username(username)
+            if not username_valid:
+                return self._show_login_form(error=f"Invalid input: {username_error}")
+            
+            password_valid, password_error = InputValidator.validate_password(password)
+            if not password_valid:
+                return self._show_login_form(error=f"Invalid input: {password_error}")
+            
+            # Check credentials (use raw password for comparison to avoid issues with escaping)
+            if username == docs_username and raw_password == docs_password:
                 response = RedirectResponse(url=str(request.url), status_code=302)
                 response.set_cookie(
                     "auth_token", 
@@ -109,7 +167,9 @@ class LoginPasswordMiddleware(BaseHTTPMiddleware):
     def _show_login_form(error: str = None):
         error_html = ""
         if error:
-            error_html = f'<div class="error">{error}</div>'
+            # Escape error message to prevent XSS
+            escaped_error = escape(str(error))
+            error_html = f'<div class="error">{escaped_error}</div>'
         
         login_html = f"""
         <!DOCTYPE html>

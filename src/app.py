@@ -3,6 +3,7 @@ import argparse
 
 import uvicorn
 from fastapi.staticfiles import StaticFiles
+from starlette.datastructures import MutableHeaders
 
 from src.utils.server_config import mcp
 from src.utils.auth import BearerAuthMiddleware, LoginPasswordMiddleware, limiter
@@ -84,6 +85,42 @@ if __name__ == "__main__":
         app = mcp.http_app(
             path=args.path,
         )
+
+        mcp_path = args.path.rstrip("/") if args.path else "/mcp"
+
+        @app.middleware("http")
+        async def ensure_event_stream_accept(request, call_next):
+            if request.url.path.rstrip("/") == mcp_path:
+                headers = MutableHeaders(scope=request.scope)
+                accept_header = headers.get("accept")
+
+                if accept_header:
+                    parts = [part.strip() for part in accept_header.split(",") if part.strip()]
+                else:
+                    parts = []
+
+                has_application_json = any(
+                    part.split(";")[0].strip().lower() == "application/json"
+                    for part in parts
+                )
+                has_event_stream = any(
+                    part.split(";")[0].strip().lower() == "text/event-stream"
+                    for part in parts
+                )
+
+                updated_parts = list(parts)
+
+                if not has_application_json:
+                    updated_parts.insert(0, "application/json")
+
+                if not has_event_stream:
+                    updated_parts.append("text/event-stream")
+
+                if not has_event_stream or not has_application_json:
+                    headers["accept"] = ", ".join(updated_parts)
+
+            response = await call_next(request)
+            return response
         # Configure rate limiter
         app.state.limiter = limiter
         app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
